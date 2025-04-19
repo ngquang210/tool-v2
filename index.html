@@ -1,0 +1,111 @@
+# -*- coding: utf-8 -*-
+import re
+import sys
+import hashlib # Mặc dù không dùng để tạo hash, nhưng có thể hữu ích nếu cần mở rộng
+import time   # Thêm thư viện time để tạm dừng trước khi thoát
+
+def validate_md5(md5_hash):
+    """Kiểm tra xem chuỗi đầu vào có phải là mã MD5 hợp lệ không."""
+    if not isinstance(md5_hash, str):
+        return False, "Đầu vào phải là một chuỗi."
+    md5_hash = md5_hash.strip()
+    if len(md5_hash) != 32:
+        return False, f"Mã MD5 phải có đúng 32 ký tự (đã nhập {len(md5_hash)} ký tự)."
+    if not re.fullmatch(r'[0-9a-fA-F]{32}', md5_hash):
+        return False, "Mã MD5 chứa ký tự không hợp lệ (chỉ cho phép 0-9, a-f, A-F)."
+    return True, md5_hash
+
+def predict_tx_from_md5_rule(md5_hash):
+    """
+    Dự đoán Tài/Xỉu dựa trên một quy tắc giả định từ ký tự cuối của MD5.
+    QUAN TRỌNG: Quy tắc này không có cơ sở toán học hoặc thống kê thực tế.
+    """
+    last_char = md5_hash[-1].lower()
+    try:
+        last_digit_value = int(last_char, 16)
+        # Quy tắc giả định: <= 7 là Xỉu (8/16), > 7 là Tài (8/16)
+        if last_digit_value <= 7:
+            prediction = "Xỉu"
+            probability = 50.0
+        else:
+            prediction = "Tài"
+            probability = 50.0
+        return {"prediction": prediction, "probability": probability}
+    except ValueError:
+        return {"prediction": "Lỗi", "probability": 0.0}
+
+def display_results(result):
+    """Hiển thị kết quả dự đoán."""
+    print("-" * 35)
+    if result['prediction'] == "Lỗi":
+        print(" (!) Đã xảy ra lỗi trong quá trình xử lý.")
+    else:
+        print(f" vkhanhh v2 Dự đoán:")
+        print(f"  -> Kết quả (giả định): {result['prediction']}")
+        print(f"  -> Xác suất (theo quy tắc): {result['probability']:.1f}%")
+    print("-" * 35)
+
+def run_vkhanhh_v2():
+    """Chạy giao diện chính của tool."""
+    print("=" * 40)
+    print("   Chào mừng đến với Tool Tài Xỉu MD5")
+    print("              vkhanhh v2")
+    print("=" * 40)
+    print("\n*** CẢNH BÁO QUAN TRỌNG ***")
+    print("Tool này dự đoán dựa trên MỘT QUY TẮC GIẢ ĐỊNH từ mã MD5.")
+    print("Kết quả và xác suất KHÔNG CÓ CƠ SỞ THỰC TẾ và KHÔNG ĐẢM BẢO")
+    print("độ chính xác trong trò chơi Tài Xỉu thực tế.")
+    print("MD5 không thể dự đoán các sự kiện ngẫu nhiên.")
+    print("Hãy chơi có trách nhiệm. KHÔNG dùng tool này để cờ bạc.")
+    print("-" * 40)
+
+    while True:
+        try:
+            md5_input = input("Nhập mã MD5 (32 ký tự) hoặc gõ 'exit' để thoát:\n> ").strip()
+
+            if md5_input.lower() == 'exit':
+                print("\nCảm ơn đã sử dụng vkhanhh v2. Tạm biệt!")
+                break # Thoát vòng lặp
+
+            is_valid, validation_result = validate_md5(md5_input)
+
+            if not is_valid:
+                print(f"\n (!) Lỗi đầu vào: {validation_result}\n")
+                continue
+
+            md5_hash = validation_result
+            prediction_result = predict_tx_from_md5_rule(md5_hash)
+            display_results(prediction_result)
+
+            print("\nNhập mã MD5 khác hoặc 'exit' để thoát.")
+            print("-" * 40)
+
+        except EOFError: # Xử lý khi chạy file .exe mà không có cửa sổ console tương tác
+             print("\nĐã nhận tín hiệu kết thúc. Thoát.")
+             break
+        except KeyboardInterrupt: # Xử lý Ctrl+C
+             print("\nĐã nhận tín hiệu ngắt. Thoát.")
+             break
+        except Exception as e: # Bắt các lỗi không mong muốn khác
+             print(f"\n (!) Đã xảy ra lỗi không mong muốn: {e}")
+             break # Thoát nếu có lỗi nghiêm trọng
+
+    # Thêm dòng này để cửa sổ không đóng ngay lập tức khi chạy file .exe
+    # print("\nNhấn Enter để thoát...")
+    # input() # Chờ người dùng nhấn Enter
+    # Thay vào đó, dùng time.sleep để cửa sổ tự đóng sau vài giây
+    print("\nChương trình sẽ tự đóng sau 5 giây...")
+    time.sleep(5)
+
+
+if __name__ == "__main__":
+    # Thêm mã để xử lý encoding cho output trên Windows cmd/powershell
+    if sys.stdout.encoding != 'utf-8':
+        try:
+            # Cố gắng đặt encoding thành utf-8
+            sys.stdout.reconfigure(encoding='utf-8')
+            sys.stderr.reconfigure(encoding='utf-8')
+        except Exception as e:
+            print(f"Warning: Could not set stdout/stderr encoding to utf-8: {e}")
+
+    run_vkhanhh_v2()
